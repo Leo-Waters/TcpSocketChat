@@ -1,4 +1,5 @@
 using System;
+using System.Windows.Forms;
 
 namespace SocketChatWithGUI
 {
@@ -6,6 +7,7 @@ namespace SocketChatWithGUI
     {
         bool IsConnected = false;
         Chat chat;
+        string PlayerName = "";
         public Form1()
         {
             InitializeComponent();
@@ -41,6 +43,11 @@ namespace SocketChatWithGUI
 
         private void Host_Click(object sender, EventArgs e)
         {
+            PlayerName = NameBox.Text.ToLower().Replace(" ", "");
+            if (string.IsNullOrEmpty(PlayerName))
+            {
+                NameBox.Text = PlayerName = "Host" + Random.Shared.NextInt64(0,99);
+            }
             OutputBox.Text = "";
             IsConnected = true;
             chat.StartServer();
@@ -54,6 +61,12 @@ namespace SocketChatWithGUI
             ConnectedUI(IsConnected);
             if (IsConnected)
             {
+                PlayerName = NameBox.Text.ToLower().Replace(" ","");
+                if (string.IsNullOrEmpty(PlayerName))
+                {
+                    NameBox.Text=PlayerName = ("user" + Random.Shared.NextInt64(0,99));
+                }
+
                 OutputBox.Text = "";
                 AddMessage("Connecting to " + IPBox.Text + ":8080");
                 if (chat.StartClient())
@@ -83,7 +96,8 @@ namespace SocketChatWithGUI
             {
                 if (chat.isRunning)
                 {
-                    AddMessage("You: " + InputBox.Text);
+                    InputBox.Text = PlayerName+": "+InputBox.Text;
+                    AddMessage(InputBox.Text);
                     chat.SendMessage(InputBox.Text);
                     InputBox.Text = "";
                 }
@@ -95,9 +109,16 @@ namespace SocketChatWithGUI
 
         void AddMessage(string message)
         {
-            OutputBox.Text +=message+ Environment.NewLine;
+            OutputBox.Text+=message + Environment.NewLine;
         }
 
-
+        private void InputBox_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            if (e.KeyChar == '\r')
+            {
+                Send_Click(sender, e);
+                e.Handled = true;
+            }
+        }
     }
 }

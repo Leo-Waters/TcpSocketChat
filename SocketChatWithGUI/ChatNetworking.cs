@@ -10,10 +10,10 @@ public class Chat
     IPAddress ipAddress = IPAddress.Parse("127.0.0.1");
     int port = 8080;
     public bool isRunning = false;
-
+    bool IsServer = false;
     TcpListener server;
-    TcpClient client;
-    NetworkStream stream;
+    TcpClient TcpHost;
+    List<TcpClient> clients;
 
     TextBox output;
 
@@ -29,15 +29,14 @@ public class Chat
     public void CleanUp()
     {
         isRunning = false;
-        if (stream!=null)
+
+        if (clients != null)
         {
-            stream.Close();
-            
-            
-        }
-        if (client!=null)
-        {
-            client.Close();
+            foreach (var client in clients)
+            {
+                client.Close();
+            }
+            clients.Clear();
         }
         if (server != null)
         {
@@ -47,17 +46,16 @@ public class Chat
 
     public bool StartClient()
     {
+        IsServer = false;
         try
         {
             // Connect to the server
-            client = new TcpClient();
+            TcpClient client = new TcpClient();
             client.Connect(ipAddress, port);
-           
-            stream = client.GetStream();
-
-            // Start receiving messages from the server
-            isRunning=true;
-            Task.Run(() => ReceiveMessages());
+            TcpHost = client;
+             // Start receiving messages from the server
+             isRunning =true;
+            Task.Run(() => ReceiveMessages(client));
             return true;
         }
         catch (Exception ex)
@@ -67,24 +65,30 @@ public class Chat
     }
     public async void StartServer()
     {
+        IsServer = true;
         try
         {
+            clients = new List<TcpClient>();
             // Create a TCP/IP listener
             server = new TcpListener(ipAddress, port);
 
             // Start listening for client requests
             server.Start();
-            // Accept a client connection
-            client = await server.AcceptTcpClientAsync();
-            output.Invoke((MethodInvoker)delegate { output.Text += "Client Connected!" + Environment.NewLine; });
-
-            server.Stop();
-
-            stream = client.GetStream();
-
-            // Start receiving messages from the client
             isRunning = true;
-            Task.Run(() => ReceiveMessages());
+
+            while (isRunning == true)
+            {
+                TcpClient client = await server.AcceptTcpClientAsync();
+                output.Invoke((MethodInvoker)delegate { output.Text += "Client Connected!" + Environment.NewLine; });
+
+                clients.Add(client);
+
+                // Start receiving messages from the client
+
+                Task.Run(() => ReceiveMessages(client));
+            }
+            // Accept a client connection
+
         }
         catch (Exception ex)
         {
@@ -96,8 +100,9 @@ public class Chat
 
 
 
-    async Task ReceiveMessages()
+    async Task ReceiveMessages(TcpClient client)
     {
+        NetworkStream stream= client.GetStream();
         try
         {
             while (isRunning)
@@ -108,14 +113,22 @@ public class Chat
                 if (bytesRead > 0)
                 {
                     string receivedMessage = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    output.Invoke((MethodInvoker)delegate { output.Text +="Them: "+receivedMessage + Environment.NewLine; });
+                    output.Invoke((MethodInvoker)delegate { output.Text +=receivedMessage + Environment.NewLine; });
+                    if (IsServer)
+                    {
+                        BroadcastMessage(receivedMessage, client);
+                    }
 
                 }
                 else
                 {
-                    // Connection closed by the other end
-                    isRunning = false;
-                    Disconnected?.Invoke(this, EventArgs.Empty);
+                    if (!IsServer)
+                    {
+                        // Connection closed by the other end
+                        isRunning = false;
+                        Disconnected?.Invoke(this, EventArgs.Empty);
+                    }
+
                 }
             }
         }
@@ -128,18 +141,48 @@ public class Chat
 
     public void SendMessage(string message)
     {
-        try
+        if (!IsServer)
         {
-            if (!string.IsNullOrEmpty(message))
+            NetworkStream stream = TcpHost.GetStream();
+            try
             {
-                byte[] buffer = Encoding.UTF8.GetBytes(message);
-                stream.Write(buffer, 0, buffer.Length);
+                if (!string.IsNullOrEmpty(message))
+                {
+                    byte[] buffer = Encoding.UTF8.GetBytes(message);
+                    stream.Write(buffer, 0, buffer.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("An error occurred while sending messages: {0}", ex.Message);
+                Disconnected?.Invoke(this, EventArgs.Empty);
             }
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine("An error occurred while sending messages: {0}", ex.Message);
-            Disconnected?.Invoke(this, EventArgs.Empty);
+            BroadcastMessage(message, null);
+        }
+
+    }
+
+    void BroadcastMessage(string message, TcpClient sender)
+    {
+        byte[] buffer = Encoding.UTF8.GetBytes(message);
+
+        foreach (TcpClient client in clients)
+        {
+            if (client != sender)
+            {
+                try
+                {
+                    NetworkStream stream = client.GetStream();
+                    stream.Write(buffer, 0, buffer.Length);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine("An error occurred while broadcasting message: {0}", ex.Message);
+                }
+            }
         }
     }
 }

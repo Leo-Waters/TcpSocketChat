@@ -34,6 +34,7 @@
             this.IPBox = new System.Windows.Forms.TextBox();
             this.Connect = new System.Windows.Forms.Button();
             this.Host = new System.Windows.Forms.Button();
+            this.NameBox = new System.Windows.Forms.TextBox();
             this.SuspendLayout();
             // 
             // OutputBox
@@ -57,6 +58,7 @@
             this.InputBox.Name = "InputBox";
             this.InputBox.Size = new System.Drawing.Size(681, 23);
             this.InputBox.TabIndex = 1;
+            this.InputBox.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.InputBox_KeyPress);
             // 
             // Send
             // 
@@ -75,7 +77,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.IPBox.Location = new System.Drawing.Point(4, 4);
             this.IPBox.Name = "IPBox";
-            this.IPBox.Size = new System.Drawing.Size(570, 23);
+            this.IPBox.Size = new System.Drawing.Size(302, 23);
             this.IPBox.TabIndex = 1;
             this.IPBox.Text = "127.0.0.1";
             // 
@@ -101,6 +103,17 @@
             this.Host.UseVisualStyleBackColor = true;
             this.Host.Click += new System.EventHandler(this.Host_Click);
             // 
+            // NameBox
+            // 
+            this.NameBox.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.NameBox.CharacterCasing = System.Windows.Forms.CharacterCasing.Lower;
+            this.NameBox.Location = new System.Drawing.Point(312, 4);
+            this.NameBox.MaxLength = 10;
+            this.NameBox.Name = "NameBox";
+            this.NameBox.PlaceholderText = "user name";
+            this.NameBox.Size = new System.Drawing.Size(270, 23);
+            this.NameBox.TabIndex = 1;
+            // 
             // Form1
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
@@ -109,6 +122,7 @@
             this.Controls.Add(this.Host);
             this.Controls.Add(this.Connect);
             this.Controls.Add(this.Send);
+            this.Controls.Add(this.NameBox);
             this.Controls.Add(this.IPBox);
             this.Controls.Add(this.InputBox);
             this.Controls.Add(this.OutputBox);
@@ -127,5 +141,6 @@
         private TextBox IPBox;
         private Button Connect;
         private Button Host;
+        private TextBox NameBox;
     }
 }
